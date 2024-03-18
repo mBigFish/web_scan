@@ -1,5 +1,13 @@
 # 网站批量检测工具V1.0.2
 
+## 软件截图
+![b8d1759755f1d364b5841b6125a04e2e](https://github.com/mBigFish/web_scan/assets/102002255/c34f551a-e959-49f4-a3cd-93397fe634ce)
+
+<img width="791" alt="image" src="https://github.com/mBigFish/web_scan/assets/102002255/cdc5b017-f334-450b-99c3-e0b2d45e97cf">
+
+<img width="791" alt="image" src="https://github.com/mBigFish/web_scan/assets/102002255/2fa0f099-9de4-491b-bdef-1ed91c8d5ebc">
+
+
 ## 开发背景
 
 ​	在本人实习于网信办期间，面临了对大量本地网站进行备案信息和内容合规性检查的挑战。这些网站的数量巨大，而手动检查方法耗时且容易遗漏，特别是在频繁变化的网络环境中。同时，由于网站运营状况的不断变化，以及黑客入侵的不定时等不可预测的情况，需要及时而有效地监测网站状态。
