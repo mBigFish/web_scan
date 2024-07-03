@@ -1,0 +1,54 @@
+
+
+CSHandleURL
+-----------------------
+判断url是否含有http/https
+    --- check_url_protocol()
+从url中获取host和端口
+    --- get_host_port_from_url()
+判断url是否正确
+    --- is_valid_url()
+判断是域名还是ip
+    --- is_ip_or_domain()
+
+
+CSGetIpURL
+----------------------
+获取域名ip
+
+
+CSGetResponseWEB
+----------------------
+网站域名获取
+网站IP获取
+网站响应获取
+网站标题获取
+网站长度获取
+网站服务获取
+
+
+CSGetDomainURL
+----------------------
+网站域名获取
+
+
+
+
+
+
+CSGetPortHOST
+----------------------
+网站端口获取
+
+CSGetIcpDomain
+----------------------
+网站备案获取
+
+
+CSGetCmsWEB
+----------------------
+网站cms识别
+
+
+
+----------------------
