@@ -12,18 +12,19 @@ THREAD_POOL_SIZE = 100
 def fetch_url(url):
     try:
         r = requests.get(url, verify=False, timeout=10).status_code
-        print(url, r)
+        # print(url, r)
         a = url, r
     except requests.RequestException as e:
-        print(url, "eeeeeeeeeeeeeee")
+        # print(url, "eeeeeeeeeeeeeee")
         a = f"Error fetching {url}: {e}"
     return a
 
 # 主函数，用于执行爬取任务
 def main():
-    start = time.time()
-    with open("./more_url1.txt", "r") as fp:
+    with open("../url.txt", "r") as fp:
         urls = [line.strip("\n") for line in fp.readlines()]
+
+    start = time.time()
 
     total = len(urls)
     # 使用线程池
@@ -33,10 +34,10 @@ def main():
 
         completed = 0
         # 等待所有任务完成
-        # for future in as_completed(futures):
-        #     completed += 1
-        #     bf = '%.2f' % {completed / total * 100}
-        #     print(f"[{bf}]%{future.result()}")
+        for future in as_completed(futures):
+            completed += 1
+            bf = round(completed / total * 100, 2)
+            print(f"[{bf}%], {future.result()}")
 
         if wait(futures, return_when=ALL_COMPLETED):
             end = time.time()

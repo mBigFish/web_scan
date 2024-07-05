@@ -1,3 +1,5 @@
+from asyncio import as_completed
+
 from CSHandleURL import HandleURL
 import datetime
 import socket
@@ -24,6 +26,12 @@ class GetIpURL(object):
         t = ThreadPoolExecutor(max_workers=self.THREAD_POOL_SIZE)
         for k, url in enumerate(self.urllist):
             tasklist.append(t.submit(self.__scan, url, k + 1))  # 提交 URL 扫描任务
+        # for future in as_completed(tasklist):
+        #     print(future)
+            # completed += 1
+            # bf = round(completed / total * 100, 2)
+            # print(f"[{bf}%], {future.result()}")
+
         print(f'total {self.allurlnumber}')
         if wait(tasklist, return_when=ALL_COMPLETED):
             end_time = datetime.datetime.now()
@@ -53,6 +61,7 @@ class GetIpURL(object):
 
         # 调用回调函数处理扫描结果
         callback(no, url, ip)
+        return 1
 
     # def __errorreport(self, message):
     #     if not self.nooutfile:
