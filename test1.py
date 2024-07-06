@@ -18,16 +18,18 @@ from certifi.__main__ import args
 
 from CSHeaderGenerator import HeaderGenerator
 from CSCallBack import CallBack
-
+import warnings
+from urllib3.exceptions import NotOpenSSLWarning
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+warnings.filterwarnings("ignore", category=NotOpenSSLWarning)
+# DEBUG = True
 DEBUG = False
-
 
 
 class CSGetResponseWEB(object):
     def __init__(self, url_list):
 
-        # 从config读取配置信息
+        # 从config读取request配置信息
         config = configparser.ConfigParser()
         config.read("config.ini")
         config_section = "request"
@@ -35,11 +37,15 @@ class CSGetResponseWEB(object):
         self.OUTFILE = config.getboolean(config_section, "OUTFILE")
         self.VERITY = config.getboolean(config_section, "VERITY")
         self.RANDOM_HEADER = config.getboolean(config_section, "RANDOM_HEADER")
-
-        self.TRYAGAIN = config.getint(config_section, "TRYAGAIN")
+        self.TRYAGAIN = config.getboolean(config_section, "TRYAGAIN")
         self.THREAD_POOL_SIZE = config.getint(config_section, "THREAD_POOL_SIZE")
         self.TIMEOUT = config.getint(config_section, "TIMEOUT")
         self.PROXY = json.loads(config.get(config_section, "PROXY"))
+        # 从config读取function配置信息
+        config_section = "function"
+        self.GET_WEB_TITLE = config.getboolean(config_section, "GET_WEB_TITLE")
+        self.GET_WEB_LENGTH = config.getboolean(config_section, "GET_WEB_LENGTH")
+        self.GET_WEB_SERVER =  config.getboolean(config_section, "GET_WEB_SERVER")
 
         self.CALLBACK = CallBack()
 
@@ -66,9 +72,12 @@ class CSGetResponseWEB(object):
         with ThreadPoolExecutor(max_workers=self.THREAD_POOL_SIZE) as t:
             tasklist = []
             for url_id, url in enumerate(self.URL_LIST):
-                tasklist.append(t.submit(self.__scan, url, url_id + 1)) # 提交 URL 扫描任务
+                tasklist.append(t.submit(self.__scan, url_id + 1, url))# 提交 URL 扫描任务
             for task_result in as_completed(tasklist):
                 result_list.append(task_result.result())
+                if not DEBUG:
+                    print(f"已完成：{len(result_list)}")
+                    print(task_result.result())
 
             if wait(tasklist, return_when=ALL_COMPLETED):
                 end_time = datetime.datetime.now()
@@ -76,80 +85,87 @@ class CSGetResponseWEB(object):
                 if self.OUTFILE:
                    info_print_outfile = f'outfile: {os.path.join(os.path.abspath(os.path.dirname(__file__)), "result", self.outfilename)}'
 
-    def __callback(self):
-        pass
+    def __callback(self, url_id, url, state, response, progress):
+        result = {"网站状态": state}
+        if response:
+            if self.GET_WEB_TITLE:
+                result["网站标题"] = self.__get_web_title(response)
+            if self.GET_WEB_LENGTH:
+                result["网页长度"] = self.__get_web_length(response)
+            if self.GET_WEB_SERVER:
+                result["网站服务"] = self.__get_web_server(response)
+        else:
+            if self.GET_WEB_TITLE:
+                result["网站标题"] = ''
+            if self.GET_WEB_LENGTH:
+                result["网页长度"] = ''
+            if self.GET_WEB_SERVER:
+                result["网站服务"] = ''
+        # print(url_id, url, progress, result)
+        # print(f"[{progress}%] | {url} | {result}")
+        return url_id, url, progress, result
 
-    def __scan(self, url, url_id):
+    def __scan(self, url_id, url):
         self.completed_url += 1
-        header = self.__getheader()
-        progress =
+        header = self.__get_header()
+        progress = '%.2f' % ((self.completed_url / self.TOTAL_URL) * 100)
+        response = None
         try:
-            # 发送HTTP请求判断网站是否存活
-            if self.ALLOW_REDIRECT:
-                # 允许重定向时的处理逻辑
-                r = requests.get(url=url, headers=header,
-                                 timeout=self.TIMEOUT, verify=self.VERITY, proxies=self.PROXY)
-                state = r.status_code
-
-            else:
-                # 不允许重定向时的处理逻辑
-                r = requests.get(url=url, headers=header, allow_redirects=self.ALLOW_REDIRECT,
-                                 timeout=self.TIMEOUT, verify=self.VERITY, proxies=self.PROXY)
-                state = r.status_code
+            response = requests.get(
+                url=url, headers=header, allow_redirects=self.ALLOW_REDIRECT,
+                timeout=self.TIMEOUT, verify=self.VERITY, proxies=self.PROXY
+            )
+            state = response.status_code
 
             # 调用回调函数处理扫描结果
-            callback(no, url, ip, state, state_code, title, server, length, other)
+            # self.__callback(url_id, url, state, response, progress)
+            print(url)
+            return url_id, url, state, response, progress
 
         # 处理各种异常情况
         except requests.exceptions.ConnectTimeout as e:
-            # 如果开启了 DEBUG 模式，则打印连接超时的错误信息
             if DEBUG:
-                print(f'[ERROR][SCAN][ConnectTimeout] {url} {e}')
+                print(f"[ERROR] | [连接超时] | {url} | [原因{e}]")
             # 记录错误信息到错误报告中
-            self.__errorreport(str(e))
-            # 标记状态为 'dead'，表示连接失败
+            # self.__errorreport(str(e))
             state = '连接超时'
             # 调用回调函数，通知处理结果
-            callback(no, url, ip, state, state_code, title, server, length, 'ConnectTimeout')
+            self.__callback(url_id, url, state, response, progress)
 
         except requests.exceptions.ReadTimeout as e:
-            # 如果开启了 DEBUG 模式，则打印读取超时的错误信息
             if DEBUG:
-                print(f'[ERROR][SCAN][ReadTimeout] {url} {e}')
+                print(f"[ERROR] | [读取超时] | {url} | [原因{e}]")
             # 记录错误信息到错误报告中
-            self.__errorreport(str(e))
-            # 标记状态为 'dead'，表示读取失败
+            # self.__errorreport(str(e))
             state = '读取超时'
             # 调用回调函数，通知处理结果
-            callback(no, url, ip, state, state_code, title, server, length, 'ReadTimeout')
+            self.__callback(url_id, url, state, response, progress)
 
         except requests.exceptions.ConnectionError as e:
-            # 如果开启了 DEBUG 模式，则打印连接错误的错误信息
             if DEBUG:
-                print(f'[ERROR][SCAN][ConnectionError] {url} {e}')
+                print(f"[ERROR] | [连接错误] | {url} | [原因{e}]")
             # 记录错误信息到错误报告中
-            self.__errorreport(str(e))
-            # 标记状态为 'dead'，表示连接失败
+            # self.__errorreport(str(e))
             state = '连接错误'
             # 调用回调函数，通知处理结果
-            callback(no, url, ip, state, state_code, title, server, length, 'ConnectionError')
+            self.__callback(url_id, url, state, response, progress)
 
         except Exception as e:
-            # 如果开启了 DEBUG 模式，则打印其他未知异常的错误信息
             if DEBUG:
-                print(f'[ERROR][SCAN][other] {no} {url} {e}')
+                print(f"[ERROR] | [其他错误] | {url} | [原因{e}]")
             # 记录错误信息到错误报告中
-            self.__errorreport(str(e))
+            # self.__errorreport(str(e))
             # 如果设置了重试标志，尝试再次扫描该 URL
-            if tryagainflag:
-                self.__scan(url, no, True)
-            else:
-                state = "未知错误"
-            # 调用回调函数，通知处理结果
-            callback(no, url, ip, state, state_code, title, server, length, 'e')
+            # if self.TRYAGAIN:
+            #     print(self.TRYAGAIN)
+            #     self.completed_url -= 1
+            #     self.TRYAGAIN = False
+            #     self.__scan(url_id, url)
+            state = "未知错误"
+            self.__callback(url_id, url, state, response, progress)
 
 
-    def __getheader(self):
+    def __get_header(self):
         if self.RANDOM_HEADER:
             header = HeaderGenerator.get_headers()
         else:
@@ -158,9 +174,51 @@ class CSGetResponseWEB(object):
         }  # 请求的 HTTP 头部信息
         return header
 
+    @staticmethod
+    def __get_web_title(r) -> str:
+        try:
+            # 检查响应头中是否包含 Content-Type
+            if r.headers.get('Content-Type'):
+                try:
+                    # 尝试从 Content-Type 中获取字符集信息
+                    if r.headers.get('Content-Type').split('charset=')[1]:
+                        charset = r.headers.get('Content-Type').split('charset=')[1]
+                    # 如果 Content-Type 中没有字符集信息，尝试从 meta 标签中获取
+                    elif re.findall(r'<meta charset=(.*?)>', r.text)[0].replace('\'', '').replace('"', ''):
+                        charset = re.findall(r'<meta charset=(.*?)>', r.text)[0].replace('\'', '').replace('"', '')
+                    else:
+                        charset = 'utf8'
+                except Exception as e:
+                    if DEBUG:
+                        print(f"[ERROR] ｜ [获取标题错误] | [原因{e}]")
+                    charset = 'utf8'
+            else:
+                charset = 'utf8'  # 如果没有 Content-Type，默认使用 utf-8 编码
+
+            # 使用获取到的字符集解码响应内容，并从中提取网页标题
+            return re.findall(r'<title>(.*?)</title>', r.content.decode(charset))[0]
+        except Exception as e:
+            if DEBUG:
+                print(f"[ERROR] ｜ [获取标题错误] | [原因{e}]")
+            return "未获取到网站标题"
+
+    @staticmethod
+    def __get_web_length(r) -> str:
+        try:
+            return str(len(r.content))
+        except AttributeError:
+            return "未获取到网页长度"
+
+    @staticmethod
+    def __get_web_server(r) -> str:
+        try:
+            return r.headers.get('server')
+        except AttributeError:
+            return "未获取到网站服务"
+
 
 if __name__ == '__main__':
-    with open("../url.txt", "r") as fp:
+    with open("./url.txt", "r") as fp:
         urls = [line.strip("\n") for line in fp.readlines()]
     w = CSGetResponseWEB(urls)
     w.run()

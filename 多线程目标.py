@@ -11,7 +11,7 @@ THREAD_POOL_SIZE = 100
 # 爬取网页的函数
 def fetch_url(url):
     try:
-        r = requests.get(url, verify=False, timeout=10).status_code
+        r = requests.get(url, allow_redirects=True, verify=False, timeout=10).status_code
         # print(url, r)
         a = url, r
     except requests.RequestException as e:
@@ -21,7 +21,7 @@ def fetch_url(url):
 
 # 主函数，用于执行爬取任务
 def main():
-    with open("../url.txt", "r") as fp:
+    with open("./url.txt", "r") as fp:
         urls = [line.strip("\n") for line in fp.readlines()]
 
     start = time.time()
