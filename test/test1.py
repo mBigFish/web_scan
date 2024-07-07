@@ -53,7 +53,7 @@ def main(url_list):
 
 if __name__ == "__main__":
     url_list = []
-    with open("url.txt", "r") as fp:
+    with open("../file/url.txt", "r") as fp:
         for line in fp.readlines():
             url_list.append(line.strip('\n'))
 

@@ -1,23 +1,13 @@
-import argparse
 import configparser
-import csv
 import datetime
 import os
-import sys
 import re
-import socket
-import sys
 import time
 import json
-import urllib
-import urllib.parse
-from concurrent.futures import ALL_COMPLETED, ThreadPoolExecutor, wait, as_completed
+from concurrent.futures import ALL_COMPLETED, ThreadPoolExecutor, wait
 import httpx
-import requests
-import urllib3
-from certifi.__main__ import args
 
-from CSHeaderGenerator import HeaderGenerator
+from file.CSHeaderGenerator import HeaderGenerator
 from CSCallBack import CallBack
 # DEBUG = True
 DEBUG = False
@@ -101,7 +91,6 @@ class GetResponseWEB(object):
                 result["网页长度"] = ''
             if self.GET_WEB_SERVER:
                 result["网站服务"] = ''
-        # print(url_id, url, progress, result)
         print(f"[{progress}%] | {url} | {result}")
         # return url_id, url, progress, result
 
@@ -212,7 +201,7 @@ class GetResponseWEB(object):
 
 
 if __name__ == '__main__':
-    with open("./url.txt", "r") as fp:
+    with open("file/more_url.txt", "r") as fp:
         urls = [line.strip("\n") for line in fp.readlines()]
-    w = CSGetResponseWEB(urls)
+    w = GetResponseWEB(urls)
     w.run()

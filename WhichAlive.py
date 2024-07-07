@@ -250,7 +250,7 @@ if __name__ == '__main__':
     parser.add_argument('-f', '--file', metavar='FILE', nargs='?',
                         type=argparse.FileType('r'), default="../url.txt", help='URL lists file.')
 
-    file_path = "./more_url1.txt"
+    file_path = "file/more_url1.txt"
     # fp.close()
     w = whichAlive(
         file=file_path,  # 文件对象或标准输入流

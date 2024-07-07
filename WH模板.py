@@ -1,22 +1,12 @@
-import argparse
 import configparser
-import csv
 import datetime
 import os
-import sys
-import re
-import socket
-import sys
 import time
-import urllib
-import urllib.parse
 from asyncio import as_completed
 from concurrent.futures import ALL_COMPLETED, ThreadPoolExecutor, wait
-import requests
 import urllib3
-from certifi.__main__ import args
 
-from CSHeaderGenerator import HeaderGenerator
+from file.CSHeaderGenerator import HeaderGenerator
 from CSCallBack import CallBack
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
